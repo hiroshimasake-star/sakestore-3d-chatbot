@@ -40,6 +40,8 @@ export class Viewer {
   }
 
   public loadVrm(url: string) {
+     // ✅ 常にこのVRMを使う（固定）
+  url = buildUrl("/models/navichan.vrm");
     if (this.model?.vrm) {
       this.unloadVRM();
     }

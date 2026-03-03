@@ -3,8 +3,7 @@ import { Message } from "@/features/messages/messages";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
 import { KoeiroParam } from "@/features/constants/koeiroParam";
 import { ChatLog } from "./chatLog";
-import React, { useCallback, useContext, useRef, useState, useEffect } from "react";
-import { Settings } from "./settings";
+import React, { useContext, useRef, useState, useEffect, useCallback } from "react";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { AssistantText } from "./assistantText";
 
@@ -31,120 +30,52 @@ type Props = {
   onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openRouterKey: string;
 };
+
 export const Menu = ({
-  openAiKey,
-  elevenLabsKey,
-  openRouterKey,
-  systemPrompt,
   chatLog,
-  elevenLabsParam,
-  koeiroParam,
   assistantMessage,
-  onChangeSystemPrompt,
-  onChangeAiKey,
-  onChangeElevenLabsKey,
-  onChangeChatLog,
-  onChangeElevenLabsParam,
-  onChangeKoeiromapParam,
-  handleClickResetChatLog,
-  handleClickResetSystemPrompt,
-  backgroundImage,
   onChangeBackgroundImage,
-  onChatMessage,
-  onTokensUpdate,
-  onChangeOpenRouterKey,
 }: Props) => {
-  const [showSettings, setShowSettings] = useState(false);
+  // ✅ Settings UIは完全に使わない（ボタンもモーダルも出さない）
+  // Conversation Log だけ残す（必要なら次で消せる）
   const [showChatLog, setShowChatLog] = useState(false);
+
+  // Viewer / VRM upload 周りも設定UIに紐づいているので残しつつ、UIは出さない
   const { viewer } = useContext(ViewerContext);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const savedBackground = localStorage.getItem('backgroundImage');
+    const savedBackground = localStorage.getItem("backgroundImage");
     if (savedBackground) {
       onChangeBackgroundImage(savedBackground);
     }
   }, [onChangeBackgroundImage]);
 
-  const handleChangeSystemPrompt = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      onChangeSystemPrompt(event.target.value);
-    },
-    [onChangeSystemPrompt]
-  );
-
-  const handleAiKeyChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeAiKey(event.target.value);
-    },
-    [onChangeAiKey]
-  );
-
-  const handleElevenLabsKeyChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChangeElevenLabsKey(event.target.value);
-    },
-    [onChangeElevenLabsKey]
-  );
-
-  const handleElevenLabsVoiceChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      onChangeElevenLabsParam({
-        voiceId: event.target.value
-      });
-    },
-    [onChangeElevenLabsParam]
-  );
-
-  const handleChangeKoeiroParam = useCallback(
-    (x: number, y: number) => {
-      onChangeKoeiromapParam({
-        speakerX: x,
-        speakerY: y,
-      });
-    },
-    [onChangeKoeiromapParam]
-  );
-
-  const handleClickOpenVrmFile = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
+  // ※VRMアップロードUIはSettings側に無いと使えないが、
+  // 既存構造に合わせて input 自体は残しておく（表示はされない）
   const handleChangeVrmFile = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const files = event.target.files;
       if (!files) return;
-
       const file = files[0];
       if (!file) return;
 
       const file_type = file.name.split(".").pop();
-
       if (file_type === "vrm") {
         const blob = new Blob([file], { type: "application/octet-stream" });
         const url = window.URL.createObjectURL(blob);
         viewer.loadVrm(url);
       }
-
       event.target.value = "";
     },
     [viewer]
   );
 
-  const handleBackgroundImageChange = (image: string) => {
-    onChangeBackgroundImage(image);
-  };
-
   return (
     <>
+      {/* 左上メニュー：Settingsボタンは削除。Conversation Logのみ残す */}
       <div className="absolute z-10 m-24">
         <div className="grid grid-flow-col gap-[8px]">
-          <IconButton
-            iconName="24/Menu"
-            label="Settings"
-            isProcessing={false}
-            onClick={() => setShowSettings(true)}
-          ></IconButton>
           {showChatLog ? (
             <IconButton
               iconName="24/CommentOutline"
@@ -163,36 +94,12 @@ export const Menu = ({
           )}
         </div>
       </div>
+
       {showChatLog && <ChatLog messages={chatLog} />}
-      {showSettings && (
-        <Settings
-          openAiKey={openAiKey}
-          elevenLabsKey={elevenLabsKey}
-          openRouterKey={openRouterKey}
-          elevenLabsParam={elevenLabsParam}
-          chatLog={chatLog}
-          systemPrompt={systemPrompt}
-          koeiroParam={koeiroParam}
-          onClickClose={() => setShowSettings(false)}
-          onChangeAiKey={handleAiKeyChange}
-          onChangeElevenLabsKey={handleElevenLabsKeyChange}
-          onChangeElevenLabsVoice={handleElevenLabsVoiceChange}
-          onChangeSystemPrompt={handleChangeSystemPrompt}
-          onChangeChatLog={onChangeChatLog}
-          onChangeKoeiroParam={handleChangeKoeiroParam}
-          onClickOpenVrmFile={handleClickOpenVrmFile}
-          onClickResetChatLog={handleClickResetChatLog}
-          onClickResetSystemPrompt={handleClickResetSystemPrompt}
-          backgroundImage={backgroundImage}
-          onChangeBackgroundImage={handleBackgroundImageChange}
-          onTokensUpdate={onTokensUpdate}
-          onChatMessage={onChatMessage}
-          onChangeOpenRouterKey={onChangeOpenRouterKey}
-        />
-      )}
-      {!showChatLog && assistantMessage && (
-        <AssistantText message={assistantMessage} />
-      )}
+
+      {!showChatLog && assistantMessage && <AssistantText message={assistantMessage} />}
+
+      {/* UIには出ないが、既存構造を壊さないため残す */}
       <input
         type="file"
         className="hidden"
