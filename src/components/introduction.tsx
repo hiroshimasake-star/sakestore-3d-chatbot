@@ -1,5 +1,4 @@
-import { useCallback } from "react";
-import { Link } from "./link";
+import type { FC } from "react";
 
 type Props = {
   openAiKey: string;
@@ -9,19 +8,9 @@ type Props = {
 };
 
 /**
- * Introduction（初回ポップアップ）
- * - サケストア用途では初期設定UIを表示しないため、常に非表示にする。
- * - openAiKey / elevenLabsKey の入力UIも出さない（本番は環境変数や別UIで管理）。
+ * 初回設定ポップアップは表示しない。
+ * APIキーはVercelの環境変数で管理する。
  */
-export const Introduction = ({
-  openAiKey,
-  elevenLabsKey,
-  onChangeAiKey,
-  onChangeElevenLabsKey,
-}: Props) => {
-  // 万一どこかで呼ばれても、画面には何も出さない
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _noop = useCallback(() => {}, []);
-
+export const Introduction: FC<Props> = () => {
   return null;
 };
