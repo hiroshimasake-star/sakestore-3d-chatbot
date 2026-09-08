@@ -1,14 +1,17 @@
 import { wait } from "@/utils/wait";
 import { synthesizeVoice } from "../elevenlabs/elevenlabs";
 import { Viewer } from "../vrmViewer/viewer";
-import { Screenplay } from "./messages";
-import { Talk } from "./messages";
+import { Screenplay, Talk } from "./messages";
 import { ElevenLabsParam } from "../constants/elevenLabsParam";
 
 const createSpeakCharacter = () => {
   let lastTime = 0;
-  let prevFetchPromise: Promise<unknown> = Promise.resolve();
-  let prevSpeakPromise: Promise<unknown> = Promise.resolve();
+
+  let previousFetchPromise: Promise<ArrayBuffer | null> =
+    Promise.resolve(null);
+
+  let previousSpeakPromise: Promise<unknown> =
+    Promise.resolve();
 
   return (
     screenplay: Screenplay,
@@ -18,45 +21,65 @@ const createSpeakCharacter = () => {
     onStart?: () => void,
     onComplete?: () => void
   ) => {
-    const fetchPromise = prevFetchPromise.then(async () => {
-      const now = Date.now();
-      if (now - lastTime < 1000) {
-        await wait(1000 - (now - lastTime));
+    const fetchPromise = previousFetchPromise.then(
+      async () => {
+        const now = Date.now();
+
+        if (now - lastTime < 1000) {
+          await wait(1000 - (now - lastTime));
+        }
+
+        try {
+          const audioBuffer = await fetchAudio(
+            screenplay.talk,
+            elevenLabsKey,
+            elevenLabsParam
+          );
+
+          lastTime = Date.now();
+
+          return audioBuffer;
+        } catch (error) {
+          console.error("音声生成に失敗しました:", error);
+
+          return null;
+        }
       }
+    );
 
-      // if elevenLabsKey is not set, do not fetch audio
-      if (!elevenLabsKey || elevenLabsKey.trim() == "") {
-        console.log("elevenLabsKey is not set");
-        return null;
-      }
+    previousFetchPromise = fetchPromise;
 
-      const buffer = await fetchAudio(screenplay.talk, elevenLabsKey, elevenLabsParam).catch(() => null);
-      lastTime = Date.now();
-      return buffer;
-    });
+    const waitingSpeakPromise = previousSpeakPromise;
 
-    prevFetchPromise = fetchPromise;
-    prevSpeakPromise = Promise.all([fetchPromise, prevSpeakPromise]).then(([audioBuffer]) => {
+    const currentSpeakPromise = Promise.all([
+      fetchPromise,
+      waitingSpeakPromise,
+    ]).then(([audioBuffer]) => {
       onStart?.();
-      if (!audioBuffer) {
-        // pass along screenplay to change avatar expression
-        return viewer.model?.speak(null, screenplay);
-      }
-      return viewer.model?.speak(audioBuffer, screenplay);
+
+      return viewer.model?.speak(
+        audioBuffer,
+        screenplay
+      );
     });
-    prevSpeakPromise.then(() => {
+
+    previousSpeakPromise = currentSpeakPromise;
+
+    void currentSpeakPromise.finally(() => {
       onComplete?.();
     });
+
+    return currentSpeakPromise;
   };
-}
+};
 
 export const speakCharacter = createSpeakCharacter();
 
 export const fetchAudio = async (
-  talk: Talk, 
+  talk: Talk,
   elevenLabsKey: string,
-  elevenLabsParam: ElevenLabsParam,
-  ): Promise<ArrayBuffer> => {
+  elevenLabsParam: ElevenLabsParam
+): Promise<ArrayBuffer> => {
   const ttsVoice = await synthesizeVoice(
     talk.message,
     talk.speakerX,
@@ -65,13 +88,22 @@ export const fetchAudio = async (
     elevenLabsKey,
     elevenLabsParam
   );
-  const url = ttsVoice.audio;
 
-  if (url == null) {
-    throw new Error("Something went wrong");
+  const audioUrl = ttsVoice.audio;
+
+  if (!audioUrl) {
+    throw new Error("音声データが取得できませんでした。");
   }
 
-  const resAudio = await fetch(url);
-  const buffer = await resAudio.arrayBuffer();
-  return buffer;
+  try {
+    const response = await fetch(audioUrl);
+
+    if (!response.ok) {
+      throw new Error("音声データの読み込みに失敗しました。");
+    }
+
+    return await response.arrayBuffer();
+  } finally {
+    URL.revokeObjectURL(audioUrl);
+  }
 };
