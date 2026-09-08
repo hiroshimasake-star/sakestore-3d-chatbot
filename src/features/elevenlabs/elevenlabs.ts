@@ -1,65 +1,56 @@
 import { ElevenLabsParam } from "../constants/elevenLabsParam";
 import { TalkStyle } from "../messages/messages";
-import axios from 'axios';
-import { ElevenLabsClient } from "elevenlabs";
 
-
+/**
+ * Vercel側の音声APIを通して音声を生成する。
+ * ElevenLabsの秘密のAPIキーはブラウザへ渡さない。
+ */
 export async function synthesizeVoice(
   message: string,
-  speaker_x: number,
-  speaker_y: number,
+  speakerX: number,
+  speakerY: number,
   style: TalkStyle,
   elevenLabsKey: string,
   elevenLabsParam: ElevenLabsParam
 ) {
+  // 既存コードとの型互換性を保つため引数は残す
+  void speakerX;
+  void speakerY;
+  void style;
+  void elevenLabsKey;
+  void elevenLabsParam;
 
-  // Set the API key for ElevenLabs API. 
-  // Do not use directly. Use environment variables.
-  const API_KEY = elevenLabsKey;
-  // Set the ID of the voice to be used.
-  const VOICE_ID = elevenLabsParam.voiceId;
-
-  console.log('elevenlabs voice_id: ' + VOICE_ID);
-
-  // Set options for the API request.
-  const options = {
-    method: 'POST',
-    url: `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+  const response = await fetch("/api/tts", {
+    method: "POST",
     headers: {
-      accept: 'audio/mpeg', // Set the expected response type to audio/mpeg.
-      'content-type': 'application/json', // Set the content type to application/json.
-      'xi-api-key': `${API_KEY}`, // Set the API key in the headers.
+      "Content-Type": "application/json",
     },
-    data: {
-      text: message, // Pass in the inputText as the text to be converted to speech.
-    },
-    responseType: 'arraybuffer', // Set the responseType to arraybuffer to receive binary data as response.
-  };
+    body: JSON.stringify({
+      text: message,
+    }),
+  });
 
-  // Send the API request using Axios and wait for the response.
-  // @ts-ignore
-  const speechDetails = await axios.request(options);
-  // Get the binary audio data received from the API response.
-  const data =  speechDetails.data;
-  // Create a new Blob object from the audio data with MIME type 'audio/mpeg'
-  const blob = new Blob([data], { type: 'audio/mpeg' });
-  // Create a URL for the blob object
-  const url = URL.createObjectURL(blob);
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`音声生成に失敗しました: ${details}`);
+  }
+
+  const audioBlob = await response.blob();
+  const audioUrl = URL.createObjectURL(audioBlob);
 
   return {
-    audio: url
+    audio: audioUrl,
   };
 }
 
+/**
+ * 音声はVercelのVOICE IDで固定するため、
+ * ブラウザから音声一覧は取得しない。
+ */
 export async function getVoices(elevenLabsKey: string) {
-  const client = new ElevenLabsClient({ apiKey: elevenLabsKey });
-  const voices = await client.voices.getAll();
-  console.log(voices);
-  return voices;
-  /*
-  const response = await axios.get('https://api.elevenlabs.io/v1/voices');
-  console.log(response.data);
+  void elevenLabsKey;
 
-  return response.data;
-  */
+  return {
+    voices: [],
+  };
 }
