@@ -255,11 +255,17 @@ export default function Home() {
             const aiTalks = textsToScreenplay([aiText], koeiroParam);
             aiTextLog += aiText;
 
-            // 文ごとに音声を生成 & 再生、返答を表示
-            const currentAssistantMessage = sentences.join(" ");
-            handleSpeakAi(aiTalks[0], elevenLabsKey, elevenLabsParam, () => {
-              setAssistantMessage(currentAssistantMessage);
-            });
+       // 文章は音声生成を待たず、すぐ画面に表示
+const currentAssistantMessage = sentences.join(" ");
+setAssistantMessage(currentAssistantMessage);
+
+// 音声生成は文章表示とは別に実行
+// 失敗しても画面の文章はそのまま残す
+void handleSpeakAi(
+  aiTalks[0],
+  elevenLabsKey,
+  elevenLabsParam
+);
           }
         }
       } catch (e) {
