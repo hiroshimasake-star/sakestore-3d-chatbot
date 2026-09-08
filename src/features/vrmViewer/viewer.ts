@@ -18,7 +18,7 @@ export class Viewer {
   private _scene: THREE.Scene;
   private _camera?: THREE.PerspectiveCamera;
   private _cameraControls?: OrbitControls;
-
+　private _muted = true;
   constructor() {
     this.isReady = false;
 
@@ -38,7 +38,20 @@ export class Viewer {
     this._clock = new THREE.Clock();
     this._clock.start();
   }
+  /**
+   * 音声のミュート状態を切り替える
+   */
+  public setMuted(muted: boolean) {
+    this._muted = muted;
+    this.model?.setMuted(muted);
+  }
 
+  /**
+   * 現在のミュート状態を取得する
+   */
+  public getMuted() {
+    return this._muted;
+  }
   public loadVrm(url: string) {
      // ✅ 常にこのVRMを使う（固定）
   url = buildUrl("/models/navichan.vrm");
@@ -48,6 +61,7 @@ export class Viewer {
 
     // gltf and vrm
     this.model = new Model(this._camera || new THREE.Object3D());
+        this.model.setMuted(this._muted);
     this.model.loadVRM(url).then(async () => {
       if (!this.model?.vrm) return;
 
