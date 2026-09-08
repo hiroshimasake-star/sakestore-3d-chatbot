@@ -24,7 +24,20 @@ export class Model {
     this._lookAtTargetParent = lookAtTargetParent;
     this._lipSync = new LipSync(new AudioContext());
   }
+  /**
+   * 音声のミュート状態を切り替える
+   */
+  public setMuted(muted: boolean) {
+    this._lipSync?.setMuted(muted);
+  }
 
+  /**
+   * 現在のミュート状態を取得する
+   */
+  public getMuted() {
+    return this._lipSync?.getMuted() ?? true;
+  }
+  
   public async loadVRM(url: string): Promise<void> {
     const loader = new GLTFLoader();
     loader.register(
