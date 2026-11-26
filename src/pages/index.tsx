@@ -49,6 +49,19 @@ export default function Home() {
   const [chatProcessing, setChatProcessing] = useState(false);
   const [chatLog, setChatLog] = useState<Message[]>([]);
   const [assistantMessage, setAssistantMessage] = useState("");
+  const [greeting, setGreeting] = useState("");
+  const [hasStartedChat, setHasStartedChat] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(buildUrl("/api/greeting/"), { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (typeof data?.greeting === "string") setGreeting(data.greeting);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [restreamTokens, setRestreamTokens] = useState<any>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -166,6 +179,7 @@ export default function Home() {
       const newMessage = text;
       if (newMessage == null) return;
 
+      setHasStartedChat(true);
       setChatProcessing(true);
       // Add user's message to chat log
       const messageLog: Message[] = [
@@ -345,7 +359,7 @@ void handleSpeakAi(
         chatLog={chatLog}
         elevenLabsParam={elevenLabsParam}
         koeiroParam={koeiroParam}
-        assistantMessage={assistantMessage}
+        assistantMessage={hasStartedChat || chatLog.length ? assistantMessage : greeting}
         onChangeAiKey={setOpenAiKey}
         onChangeElevenLabsKey={setElevenLabsKey}
         onChangeSystemPrompt={setSystemPrompt}

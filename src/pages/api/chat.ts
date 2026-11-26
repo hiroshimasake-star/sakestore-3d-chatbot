@@ -3,6 +3,8 @@ import path from "path";
 import * as XLSX from "xlsx";
 import type { NextApiRequest, NextApiResponse } from "next";
 
+import { readPublicSettings } from "@/lib/navichanSettingsServer";
+
 type Role = "system" | "user" | "assistant";
 type ChatMsg = { role: Role; content: string };
 
@@ -220,7 +222,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const userMessages = normalizeIncomingMessages(messages);
 
     // 2) Excelロード
-    const pairs = loadTonePairs();
+    const { tone } = await readPublicSettings();
+    const pairs = tone === "current" ? loadTonePairs() : [];
 
     // 3) last user をもとに関連few-shot
     const lastUser = getLastUserText(userMessages);
@@ -228,15 +231,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const fewShot = pickRelevantFewShot(pairs, lastUser, fewShotPairsCount);
 
     // 4) system（口調固定はここが要）
-    const systemMessage: ChatMsg = {
-      role: "system",
-      content: `
-あなたはサケストアECの接客AIです。
-直後に与える few-shot（Excel例）の口調・テンポ・語彙・記号の使い方を最優先で踏襲し、可能な限り同じように答えてください。
+    const toneInstruction = tone === "current" ? `直後に与える few-shot（Excel例）の口調・テンポ・語彙・記号の使い方を最優先で踏襲し、可能な限り同じように答えてください。
 
 【口調固定】
 - 「〜だよ！」の連発は禁止（できれば使わない）
 - 「〜です～」「〜ですよ～」「私も好きです～」など、Excelの柔らかい語尾を優先
+`.trim() : tone === "polite"
+      ? "落ち着いた丁寧語で、簡潔にご案内してください。砕けた表現や絵文字は控えてください。"
+      : "親しみやすい丁寧語で、柔らかく話しかけてください。";
+
+    const systemMessage: ChatMsg = {
+      role: "system",
+      content: `
+あなたはサケストアECの接客AIです。
+${toneInstruction}
 - 2〜5行で短く、最後に質問は “1つだけ”
 
 【重要】

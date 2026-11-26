@@ -1,0 +1,68 @@
+.screen {
+  min-height: 100vh;
+  padding: clamp(20px, 6vw, 64px) 16px;
+  background: #f3f5fa;
+  color: #182744;
+  font-family: system-ui, sans-serif;
+}
+
+.card {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 36px);
+  border: 1px solid #d7dfed;
+  border-radius: 20px;
+  background: white;
+}
+
+.header, .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.header {
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.eyebrow { color: #4c607e; font-size: .875rem; }
+.header h1 { font-size: clamp(1.35rem, 5vw, 2rem); font-weight: 700; }
+
+.form { display: grid; gap: 20px; }
+
+.form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.form input, .form select, .form textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #a3b1c9;
+  border-radius: 8px;
+  background: #fff;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 1rem;
+}
+
+.form small, .notice { color: #4c607e; }
+.form small { font-weight: 400; }
+
+.card button {
+  justify-self: start;
+  min-height: 44px;
+  border-radius: 8px;
+  background: #234573;
+  padding: 8px 16px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.card button:disabled { opacity: .55; }
+.card a { color: #234573; text-decoration: underline; }
+.notice { margin-top: 16px; }
+.notice:empty { margin: 0; }
