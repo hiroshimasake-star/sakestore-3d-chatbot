@@ -135,6 +135,7 @@ export default function Admin() {
         </header>
         {settings ? (
           <>
+          <NavichanAvatarAdmin />
           <form onSubmit={save} className={styles.form}>
             <label>
               あいさつ
@@ -219,7 +220,6 @@ export default function Admin() {
               <a href={buildUrl("/")} target="_blank" rel="noopener noreferrer">接客画面を開く ↗</a>
             </div>
           </form>
-          <NavichanAvatarAdmin />
           </>
         ) : (
           <form onSubmit={login} className={styles.form}>
