@@ -76,7 +76,7 @@ export default function Admin() {
               あいさつ
               <textarea rows={3} maxLength={greetingLimit} value={settings.greeting}
                 onChange={(event) => setSettings({ ...settings, greeting: event.target.value })} />
-              <small>接客画面を開いたときに表示します。空欄で非表示になります。</small>
+              <small>接客画面で最初の返信の先頭に表示します。空欄で非表示になります。</small>
             </label>
             <label>
               返答の口調

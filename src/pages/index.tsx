@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import VrmViewer from "@/components/vrmViewer";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import {
@@ -49,19 +49,7 @@ export default function Home() {
   const [chatProcessing, setChatProcessing] = useState(false);
   const [chatLog, setChatLog] = useState<Message[]>([]);
   const [assistantMessage, setAssistantMessage] = useState("");
-  const [greeting, setGreeting] = useState("");
-  const [hasStartedChat, setHasStartedChat] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch(buildUrl("/api/greeting/"), { signal: controller.signal })
-      .then((response) => response.ok ? response.json() : null)
-      .then((data) => {
-        if (typeof data?.greeting === "string") setGreeting(data.greeting);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
+  const hasDisplayedReply = useRef(false);
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [restreamTokens, setRestreamTokens] = useState<any>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -177,9 +165,8 @@ export default function Home() {
   const handleSendChat = useCallback(
     async (text: string) => {
       const newMessage = text;
-      if (newMessage == null) return;
+      if (!newMessage?.trim()) return;
 
-      setHasStartedChat(true);
       setChatProcessing(true);
       // Add user's message to chat log
       const messageLog: Message[] = [
@@ -204,6 +191,13 @@ export default function Home() {
         localOpenRouterKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!;
       }
 
+      const greetingRequest = hasDisplayedReply.current
+        ? Promise.resolve("")
+        : fetch(buildUrl("/api/greeting/"))
+            .then((response) => response.ok ? response.json() : null)
+            .then((data) => typeof data?.greeting === "string" ? data.greeting : "")
+            .catch(() => "");
+
       const stream = await getChatResponseStream(processedMessages, openAiKey, localOpenRouterKey).catch(
         (e) => {
           console.error(e);
@@ -219,6 +213,7 @@ export default function Home() {
       let receivedMessage = "";
       let aiTextLog = "";
       let tag = "";
+      let replyGreeting: string | undefined;
       const sentences = new Array<string>();
       try {
         while (true) {
@@ -269,17 +264,16 @@ export default function Home() {
             const aiTalks = textsToScreenplay([aiText], koeiroParam);
             aiTextLog += aiText;
 
-       // 文章は音声生成を待たず、すぐ画面に表示
-const currentAssistantMessage = sentences.join(" ");
-setAssistantMessage(currentAssistantMessage);
+            if (replyGreeting === undefined) {
+              const greeting = await greetingRequest;
+              replyGreeting = hasDisplayedReply.current ? "" : greeting;
+              hasDisplayedReply.current = true;
+            }
+            const reply = sentences.join(" ");
+            setAssistantMessage(replyGreeting ? `${replyGreeting} ${reply}` : reply);
 
-// 音声生成は文章表示とは別に実行
-// 失敗しても画面の文章はそのまま残す
-void handleSpeakAi(
-  aiTalks[0],
-  elevenLabsKey,
-  elevenLabsParam
-);
+            // 音声生成は文章表示とは別に実行する。
+            void handleSpeakAi(aiTalks[0], elevenLabsKey, elevenLabsParam);
           }
         }
       } catch (e) {
@@ -359,7 +353,7 @@ void handleSpeakAi(
         chatLog={chatLog}
         elevenLabsParam={elevenLabsParam}
         koeiroParam={koeiroParam}
-        assistantMessage={hasStartedChat || chatLog.length ? assistantMessage : greeting}
+        assistantMessage={assistantMessage}
         onChangeAiKey={setOpenAiKey}
         onChangeElevenLabsKey={setElevenLabsKey}
         onChangeSystemPrompt={setSystemPrompt}
