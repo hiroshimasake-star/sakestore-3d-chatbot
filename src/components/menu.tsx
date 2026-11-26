@@ -14,6 +14,7 @@ import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { AssistantText } from "./assistantText";
 
 type Props = {
+  started: boolean;
   openAiKey: string;
   elevenLabsKey: string;
   systemPrompt: string;
@@ -40,6 +41,7 @@ type Props = {
 };
 
 export const Menu = ({
+  started,
   chatLog,
   assistantMessage,
   onChangeBackgroundImage,
@@ -85,12 +87,7 @@ export const Menu = ({
       const fileType = file.name.split(".").pop();
 
       if (fileType === "vrm") {
-        const blob = new Blob([file], {
-          type: "application/octet-stream",
-        });
-
-        const url = window.URL.createObjectURL(blob);
-        viewer.loadVrm(url);
+        void viewer.loadVrm().catch(console.error);
       }
 
       event.target.value = "";
@@ -117,8 +114,8 @@ export const Menu = ({
         }
         style={{
           position: "fixed",
-          top: "16px",
-          right: "16px",
+          top: "max(16px, env(safe-area-inset-top))",
+          right: "max(16px, env(safe-area-inset-right))",
           zIndex: 30,
           minWidth: "116px",
           height: "44px",
@@ -149,32 +146,37 @@ export const Menu = ({
         </span>
       </button>
 
-      {/* 会話履歴ボタン */}
-      <div className="absolute z-10 m-24">
-        <div className="grid grid-flow-col gap-[8px]">
-          {showChatLog ? (
-            <IconButton
-              iconName="24/CommentOutline"
-              label="Conversation Log"
-              isProcessing={false}
-              onClick={() => setShowChatLog(false)}
-            />
-          ) : (
-            <IconButton
-              iconName="24/CommentFill"
-              label="Conversation Log"
-              isProcessing={false}
-              disabled={chatLog.length <= 0}
-              onClick={() => setShowChatLog(true)}
-            />
+      {started && (
+        <>
+          {/* 会話履歴ボタン */}
+          <div className="absolute z-10 m-24">
+            <div className="grid grid-flow-col gap-[8px]">
+              {showChatLog ? (
+                <IconButton
+                  iconName="24/CommentOutline"
+                  label="Conversation Log"
+                  isProcessing={false}
+                  onClick={() => setShowChatLog(false)}
+                />
+              ) : (
+                <IconButton
+                  iconName="24/CommentFill"
+                  label="Conversation Log"
+                  isProcessing={false}
+                  disabled={chatLog.length <= 0}
+                  onClick={() => setShowChatLog(true)}
+                />
+              )}
+            </div>
+          </div>
+
+          {showChatLog && <ChatLog messages={chatLog} />}
+
+          {!showChatLog && assistantMessage && (
+            <AssistantText message={assistantMessage} />
           )}
-        </div>
-      </div>
 
-      {showChatLog && <ChatLog messages={chatLog} />}
-
-      {!showChatLog && assistantMessage && (
-        <AssistantText message={assistantMessage} />
+        </>
       )}
 
       <input

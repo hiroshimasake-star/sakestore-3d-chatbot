@@ -52,34 +52,39 @@ export class Viewer {
   public getMuted() {
     return this._muted;
   }
-  public loadVrm(url: string) {
-     // ✅ 常にこのVRMを使う（固定）
-  url = buildUrl("/models/navichan.vrm");
-    if (this.model?.vrm) {
-      this.unloadVRM();
-    }
+  public async loadVrm() {
+    this.unloadVRM();
 
-    // gltf and vrm
-    this.model = new Model(this._camera || new THREE.Object3D());
-        this.model.setMuted(this._muted);
-    this.model.loadVRM(url).then(async () => {
-      if (!this.model?.vrm) return;
+    const model = new Model(this._camera || new THREE.Object3D());
+    this.model = model;
+    model.setMuted(this._muted);
+    try {
+      await model.loadVRM(buildUrl("/models/navichan.vrm"));
+      if (this.model !== model) {
+        model.unLoadVrm();
+        return;
+      }
+      if (!model.vrm) throw new Error("VRM data is missing");
 
-      // Disable frustum culling
-      this.model.vrm.scene.traverse((obj) => {
+      model.vrm.scene.traverse((obj) => {
         obj.frustumCulled = false;
       });
-
-      this._scene.add(this.model.vrm.scene);
-
-      const vrma = await loadVRMAnimation(buildUrl("/idle_loop.vrma"));
-      if (vrma) this.model.loadAnimation(vrma);
-
-      // HACK: アニメーションの原点がずれているので再生後にカメラ位置を調整する
-      requestAnimationFrame(() => {
-        this.resetCamera();
-      });
-    });
+      this._scene.add(model.vrm.scene);
+      this.resetCamera();
+      void loadVRMAnimation(buildUrl("/idle_loop.vrma"))
+        .then(async (animation) => {
+          if (this.model !== model || !animation) return;
+          await model.loadAnimation(animation);
+          requestAnimationFrame(() => {
+            if (this.model === model) this.resetCamera();
+          });
+        })
+        .catch((error) => console.error("Unable to load idle animation", error));
+    } catch (error) {
+      if (this.model === model) this.model = undefined;
+      model.unLoadVrm();
+      throw error;
+    }
   }
 
   public unloadVRM(): void {

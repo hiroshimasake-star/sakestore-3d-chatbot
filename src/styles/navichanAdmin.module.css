@@ -66,3 +66,42 @@
 .card a { color: #234573; text-decoration: underline; }
 .notice { margin-top: 16px; }
 .notice:empty { margin: 0; }
+
+.startSettings {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 0 4px;
+  border-top: 1px solid #d7dfed;
+}
+
+.startSettings legend {
+  padding-right: 10px;
+  font-weight: 700;
+}
+
+.imageField {
+  display: grid;
+  gap: 6px;
+}
+
+.previewControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.previewControls button[aria-pressed="false"] {
+  background: #eef3fa;
+  color: #234573;
+}
+
+.phonePreview, .desktopPreview {
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px;
+  border-radius: 14px;
+  background: #ffb9bf;
+}
+
+.phonePreview { max-width: 390px; }

@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { parseSettings } from "@/lib/navichanSettings";
-import { readSettings, saveSettings, supabaseRequest, supabaseUrl } from "@/lib/navichanSettingsServer";
+import { parseStartScreen } from "@/lib/navichanStartScreen";
+import { readAdminSettings, saveSettings, supabaseRequest, supabaseUrl } from "@/lib/navichanSettingsServer";
+
+export const config = { api: { bodyParser: { sizeLimit: "2200kb" } } };
 
 const cookieName = "navichan_admin";
 const unauthorized = "管理者アカウントでログインしてください。";
@@ -51,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           !Number.isSafeInteger(session.expires_in) || session.expires_in <= 0) {
         return res.status(401).json({ error: unauthorized });
       }
-      const settings = await readSettings();
+      const settings = await readAdminSettings();
       res.setHeader("Set-Cookie", sessionCookie(session.access_token, session.expires_in));
       return res.status(200).json(settings);
     }
@@ -66,11 +69,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: unauthorized });
     }
 
-    if (req.method === "GET") return res.status(200).json(await readSettings());
+    if (req.method === "GET") return res.status(200).json(await readAdminSettings());
 
     const settings = parseSettings(req.body);
-    if (!settings) return res.status(400).json({ error: "あいさつと口調の入力内容をご確認ください。" });
-    return res.status(200).json(await saveSettings(settings));
+    const startScreen = parseStartScreen(req.body?.startScreen);
+    if (!settings || !startScreen) {
+      return res.status(400).json({ error: "あいさつ・口調・開始画面の入力内容をご確認ください。" });
+    }
+    return res.status(200).json(await saveSettings(settings, startScreen));
   } catch {
     return res.status(503).json({ error: "管理画面の接続に失敗しました。時間を置いて再試行してください。" });
   }

@@ -62,6 +62,10 @@ export class Model {
   }
 
   public unLoadVrm() {
+    if (this._lipSync) {
+      void this._lipSync.audio.close().catch(() => {});
+      this._lipSync = undefined;
+    }
     if (this.vrm) {
       VRMUtils.deepDispose(this.vrm.scene);
       this.vrm = null;

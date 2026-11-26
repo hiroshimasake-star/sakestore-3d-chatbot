@@ -1,0 +1,127 @@
+.start {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left));
+  overflow: auto;
+  color: #101d39;
+}
+
+.startButton {
+  width: min(100%, 620px);
+  border-radius: 24px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.startButton:focus-visible {
+  outline: 3px solid #172457;
+  outline-offset: 5px;
+}
+
+.card {
+  display: grid;
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 12px 34px #631d4926;
+}
+
+.standard,
+.commonStandard {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: clamp(24px, 5vw, 46px) clamp(14px, 4vw, 34px);
+  background: #fff;
+  color: #151e36;
+  text-align: center;
+}
+
+.card img {
+  width: 100%;
+  max-height: 76svh;
+  object-fit: contain;
+}
+.card .desktopArtwork { display: none; }
+
+.title { font-size: clamp(1.45rem, 5vw, 2.1rem); font-weight: 800; line-height: 1.25; }
+.guide { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; }
+.hint { font-size: .85rem; color: #4c4350; font-weight: 600; }
+.phoneBreak { display: none; }
+
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 52px;
+  width: min(100%, 360px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  line-height: 1.25;
+  background: linear-gradient(105deg, #172952, #76278a);
+  color: #fff;
+  font-size: clamp(1.12rem, 4vw, 1.45rem);
+  font-weight: 800;
+}
+
+.status {
+  max-width: 24rem;
+  padding: 18px 24px;
+  border-radius: 20px;
+  background: #fff;
+  text-align: center;
+}
+
+.status button {
+  margin-top: 12px;
+  min-height: 44px;
+  padding: 8px 20px;
+  border-radius: 999px;
+  background: #25305d;
+  color: #fff;
+  font-weight: 700;
+}
+
+.badge {
+  position: fixed;
+  z-index: 25;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 12px;
+  border: 1px solid #f2bdca;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 3px 12px #5c203a24;
+  color: #172442;
+  line-height: 1.22;
+}
+
+.badge strong, .badge small { display: block; }
+.badge small { color: #544e61; font-size: .75rem; }
+.beginnerMark {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 24px;
+  background: linear-gradient(to right, #ffe052 50%, #55a442 50%);
+  clip-path: polygon(0 0, 16% 0, 50% 26%, 84% 0, 100% 0, 100% 74%, 50% 100%, 0 74%);
+  box-shadow: inset 0 0 0 2px #223329;
+}
+
+@media (min-width: 768px) {
+  .card .commonArtwork, .commonStandard { display: none; }
+  .card .desktopArtwork { display: block; }
+}
+
+@media (max-width: 420px) {
+  .phoneBreak { display: initial; }
+}
+
+.card[data-preview="phone"] .phoneBreak { display: initial; }
+.card[data-preview="desktop"] .phoneBreak { display: none; }

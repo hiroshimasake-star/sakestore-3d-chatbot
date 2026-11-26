@@ -1,5 +1,8 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import VrmViewer from "@/components/vrmViewer";
+import { BeginnerMark, NavichanStartCard } from "@/components/navichanStartCard";
+import { defaultStartScreen, parseStartScreen } from "@/lib/navichanStartScreen";
+import startStyles from "@/styles/navichanStart.module.css";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import {
   Message,
@@ -40,6 +43,47 @@ type LLMCallbackResult = {
 
 export default function Home() {
   const { viewer } = useContext(ViewerContext);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [startState, setStartState] = useState<"initial" | "loading" | "ready" | "error">("initial");
+  const [startScreen, setStartScreen] = useState<typeof defaultStartScreen | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    const timeout = window.setTimeout(() => controller.abort(), 4000);
+    fetch(buildUrl("/api/start-screen/"), { signal: controller.signal })
+      .then(async (response) => response.ok ? parseStartScreen(await response.json()) : null)
+      .catch(() => null)
+      .then((settings) => {
+        if (active) setStartScreen(settings ?? defaultStartScreen);
+      })
+      .finally(() => window.clearTimeout(timeout));
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (startState === "ready") badgeRef.current?.focus();
+  }, [startState]);
+
+  async function startReception() {
+    const canvas = canvasRef.current;
+    if (!canvas || startState === "loading" || startState === "ready") return;
+    setStartState("loading");
+    try {
+      if (!viewer.isReady) viewer.setup(canvas);
+      await viewer.loadVrm();
+      setStartState("ready");
+    } catch (error) {
+      console.error("Unable to start Navichan", error);
+      setStartState("error");
+    }
+  }
+
 
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT);
   const [openAiKey, setOpenAiKey] = useState("");
@@ -303,7 +347,7 @@ export default function Home() {
   useEffect(() => {
     websocketService.setLLMCallback(async (message: string): Promise<LLMCallbackResult> => {
       try {
-        if (isAISpeaking || isPlayingAudio || chatProcessing) {
+        if (startState !== "ready" || isAISpeaking || isPlayingAudio || chatProcessing) {
           console.log('Skipping message processing - system busy');
           return {
             processed: false,
@@ -323,7 +367,7 @@ export default function Home() {
         };
       }
     });
-  }, [handleSendChat, chatProcessing, isPlayingAudio, isAISpeaking]);
+  }, [handleSendChat, chatProcessing, isPlayingAudio, isAISpeaking, startState]);
 
   const handleOpenRouterKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newKey = event.target.value;
@@ -340,12 +384,39 @@ export default function Home() {
         elevenLabsKey={elevenLabsKey}
         onChangeElevenLabsKey={setElevenLabsKey}
       />
-      <VrmViewer />
-      <MessageInputContainer
-        isChatProcessing={chatProcessing}
-        onChatProcessStart={handleSendChat}
-      />
+      <VrmViewer canvasRef={canvasRef} />
+      {startState !== "ready" ? (
+        <section className={startStyles.start} aria-label="接客開始">
+          {startState === "error" ? (
+            <div className={startStyles.status}>
+              <p role="alert">ナビちゃんを表示できませんでした。</p>
+              <button type="button" onClick={() => void startReception()}>もう一度試す</button>
+            </div>
+          ) : startState === "loading" || !startScreen ? (
+            <p role="status" className={startStyles.status}>
+              {startScreen ? "ナビちゃんを読み込み中…" : "接客画面を読み込み中…"}
+            </p>
+          ) : (
+            <button type="button" className={startStyles.startButton}
+              aria-label={startScreen.label} onClick={() => void startReception()}>
+              <NavichanStartCard settings={startScreen} />
+            </button>
+          )}
+        </section>
+      ) : (
+        <>
+          <div className={startStyles.badge} ref={badgeRef} tabIndex={-1}>
+            <BeginnerMark />
+            <span><strong>ナビちゃん</strong><small>新人スタッフ</small></span>
+          </div>
+          <MessageInputContainer
+            isChatProcessing={chatProcessing}
+            onChatProcessStart={handleSendChat}
+          />
+        </>
+      )}
       <Menu
+        started={startState === "ready"}
         openAiKey={openAiKey}
         elevenLabsKey={elevenLabsKey}
         openRouterKey={openRouterKey}
