@@ -11,7 +11,6 @@ import React, {
   useCallback,
 } from "react";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
-import { AssistantText } from "./assistantText";
 
 type Props = {
   started: boolean;
@@ -21,7 +20,8 @@ type Props = {
   chatLog: Message[];
   elevenLabsParam: ElevenLabsParam;
   koeiroParam: KoeiroParam;
-  assistantMessage: string;
+  showChatLog: boolean;
+  onShowChatLogChange: (open: boolean) => void;
   onChangeSystemPrompt: (systemPrompt: string) => void;
   onChangeAiKey: (key: string) => void;
   onChangeElevenLabsKey: (key: string) => void;
@@ -43,11 +43,10 @@ type Props = {
 export const Menu = ({
   started,
   chatLog,
-  assistantMessage,
+  showChatLog,
+  onShowChatLogChange,
   onChangeBackgroundImage,
 }: Props) => {
-  const [showChatLog, setShowChatLog] = useState(false);
-
   // ページを開いた時は必ずミュート
   const [isMuted, setIsMuted] = useState(true);
 
@@ -156,7 +155,7 @@ export const Menu = ({
                   iconName="24/CommentOutline"
                   label="Conversation Log"
                   isProcessing={false}
-                  onClick={() => setShowChatLog(false)}
+                  onClick={() => onShowChatLogChange(false)}
                 />
               ) : (
                 <IconButton
@@ -164,18 +163,13 @@ export const Menu = ({
                   label="Conversation Log"
                   isProcessing={false}
                   disabled={chatLog.length <= 0}
-                  onClick={() => setShowChatLog(true)}
+                  onClick={() => onShowChatLogChange(true)}
                 />
               )}
             </div>
           </div>
 
           {showChatLog && <ChatLog messages={chatLog} />}
-
-          {!showChatLog && assistantMessage && (
-            <AssistantText message={assistantMessage} />
-          )}
-
         </>
       )}
 

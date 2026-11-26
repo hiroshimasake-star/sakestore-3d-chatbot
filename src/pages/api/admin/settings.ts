@@ -3,7 +3,7 @@ import { parseSettings } from "@/lib/navichanSettings";
 import { parseStartScreen } from "@/lib/navichanStartScreen";
 import { readAdminSettings, saveSettings, supabaseRequest, supabaseUrl } from "@/lib/navichanSettingsServer";
 
-export const config = { api: { bodyParser: { sizeLimit: "2200kb" } } };
+export const config = { api: { bodyParser: { sizeLimit: "3200kb" } } };
 
 const cookieName = "navichan_admin";
 const unauthorized = "管理者アカウントでログインしてください。";

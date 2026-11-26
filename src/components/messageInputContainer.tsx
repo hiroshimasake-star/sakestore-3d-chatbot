@@ -1,7 +1,8 @@
 import { MessageInput } from "@/components/messageInput";
-import { useState, useEffect, useCallback } from "react";
+import { ReactNode, useState, useEffect, useCallback } from "react";
 
 type Props = {
+  aboveInput?: ReactNode;
   isChatProcessing: boolean;
   onChatProcessStart: (text: string) => void;
 };
@@ -13,6 +14,7 @@ type Props = {
  *
  */
 export const MessageInputContainer = ({
+  aboveInput,
   isChatProcessing,
   onChatProcessStart,
 }: Props) => {
@@ -85,6 +87,7 @@ export const MessageInputContainer = ({
 
   return (
     <MessageInput
+      aboveInput={aboveInput}
       userMessage={userMessage}
       isChatProcessing={isChatProcessing}
       isMicRecording={isMicRecording}

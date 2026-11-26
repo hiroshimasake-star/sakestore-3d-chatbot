@@ -1,6 +1,9 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import VrmViewer from "@/components/vrmViewer";
-import { BeginnerMark, NavichanStartCard } from "@/components/navichanStartCard";
+import { NavichanStartCard } from "@/components/navichanStartCard";
+import { NavichanNameBadge } from "@/components/navichanNameBadge";
+import { AssistantText } from "@/components/assistantText";
+import badgeStyles from "@/styles/navichanBadge.module.css";
 import { defaultStartScreen, parseStartScreen } from "@/lib/navichanStartScreen";
 import startStyles from "@/styles/navichanStart.module.css";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
@@ -44,7 +47,8 @@ type LLMCallbackResult = {
 export default function Home() {
   const { viewer } = useContext(ViewerContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const badgeRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
+  const [showChatLog, setShowChatLog] = useState(false);
   const [startState, setStartState] = useState<"initial" | "loading" | "ready" | "error">("initial");
   const [startScreen, setStartScreen] = useState<typeof defaultStartScreen | null>(null);
 
@@ -67,7 +71,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (startState === "ready") badgeRef.current?.focus();
+    if (startState === "ready") chatRef.current?.focus();
   }, [startState]);
 
   async function startReception() {
@@ -404,16 +408,20 @@ export default function Home() {
           )}
         </section>
       ) : (
-        <>
-          <div className={startStyles.badge} ref={badgeRef} tabIndex={-1}>
-            <BeginnerMark />
-            <span><strong>ナビちゃん</strong><small>新人スタッフ</small></span>
-          </div>
+        <div ref={chatRef} tabIndex={-1} role="region" aria-label="ナビちゃんとの会話">
           <MessageInputContainer
             isChatProcessing={chatProcessing}
             onChatProcessStart={handleSendChat}
+            aboveInput={!showChatLog && (
+              <div className={badgeStyles.tray}>
+                {assistantMessage && (
+                  <div className={badgeStyles.reply}><AssistantText message={assistantMessage} /></div>
+                )}
+                <NavichanNameBadge badge={(startScreen ?? defaultStartScreen).badge} />
+              </div>
+            )}
           />
-        </>
+        </div>
       )}
       <Menu
         started={startState === "ready"}
@@ -424,7 +432,8 @@ export default function Home() {
         chatLog={chatLog}
         elevenLabsParam={elevenLabsParam}
         koeiroParam={koeiroParam}
-        assistantMessage={assistantMessage}
+        showChatLog={showChatLog}
+        onShowChatLogChange={setShowChatLog}
         onChangeAiKey={setOpenAiKey}
         onChangeElevenLabsKey={setElevenLabsKey}
         onChangeSystemPrompt={setSystemPrompt}

@@ -1,9 +1,11 @@
 import Head from "next/head";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { greetingLimit, NavichanSettings, parseSettings, Tone, toneLabels } from "@/lib/navichanSettings";
+import { NavichanNameBadge } from "@/components/navichanNameBadge";
+import badgeStyles from "@/styles/navichanBadge.module.css";
 import { NavichanStartCard } from "@/components/navichanStartCard";
 import {
-  parseStartScreen, StartScreen, startImageMaxBytes, startImageTypes, startLabelMaxLength,
+  badgeModes, NameBadge, parseStartScreen, StartScreen, startImageMaxBytes, startImageTypes, startLabelMaxLength,
 } from "@/lib/navichanStartScreen";
 import { buildUrl } from "@/utils/buildUrl";
 import styles from "@/styles/navichanAdmin.module.css";
@@ -73,7 +75,17 @@ export default function Admin() {
     });
   }
 
-  async function chooseImage(event: ChangeEvent<HTMLInputElement>, field: ImageField) {
+  function updateBadge(update: Partial<NameBadge>) {
+    setSettings((current) => current && {
+      ...current,
+      startScreen: {
+        ...current.startScreen,
+        badge: { ...current.startScreen.badge, ...update },
+      },
+    });
+  }
+
+  async function chooseImage(event: ChangeEvent<HTMLInputElement>, onImage: (image: string) => void) {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
     if (!file) return;
@@ -93,7 +105,7 @@ export default function Admin() {
       const image = new Image();
       image.src = dataUrl;
       await image.decode();
-      updateStartScreen({ [field]: dataUrl });
+      onImage(dataUrl);
     } catch {
       setNotice("画像を開けませんでした。別の画像を選んでください。");
     } finally {
@@ -143,7 +155,7 @@ export default function Admin() {
                 <div className={styles.imageField} key={field}>
                   <label>{imageFields[field]}
                     <input type="file" accept={startImageTypes.join(",")}
-                      onChange={(event) => void chooseImage(event, field)} />
+                      onChange={(event) => void chooseImage(event, (image) => updateStartScreen({ [field]: image }))} />
                   </label>
                   {settings.startScreen[field] && (
                     <button type="button" onClick={() => updateStartScreen({ [field]: "" })}>画像を外す</button>
@@ -160,6 +172,44 @@ export default function Admin() {
               </div>
               <div className={preview === "phone" ? styles.phonePreview : styles.desktopPreview}>
                 <NavichanStartCard settings={settings.startScreen} preview={preview} />
+              </div>
+            </fieldset>
+            <fieldset className={styles.startSettings} disabled={loading || readingImage}>
+              <legend>接客中の名札</legend>
+              <label>名札の表示
+                <select value={settings.startScreen.badge.mode}
+                  onChange={(event) => updateBadge({ mode: event.target.value as NameBadge["mode"] })}>
+                  {(Object.keys(badgeModes) as NameBadge["mode"][]).map((mode) => (
+                    <option key={mode} value={mode}>{badgeModes[mode]}</option>
+                  ))}
+                </select>
+              </label>
+              {settings.startScreen.badge.mode === "image" && (
+                <>
+                  <div className={styles.imageField}>
+                    <label>名札画像（iPhone・PC共通）
+                      <input type="file" accept={startImageTypes.join(",")}
+                        onChange={(event) => void chooseImage(event, (image) => updateBadge({ image }))} />
+                      <small>WebP・PNG・JPEG、750 KiBまで。未登録の場合は標準の名札が表示されます。</small>
+                    </label>
+                    {settings.startScreen.badge.image && (
+                      <button type="button" onClick={() => updateBadge({ image: "" })}>名札画像を外す</button>
+                    )}
+                  </div>
+                  <label>画像の読み上げ用テキスト
+                    <input type="text" maxLength={startLabelMaxLength} value={settings.startScreen.badge.label}
+                      onChange={(event) => updateBadge({ label: event.target.value })} />
+                  </label>
+                </>
+              )}
+              <div className={styles.previewControls} role="group" aria-label="名札の表示確認">
+                <button type="button" aria-pressed={preview === "phone"} onClick={() => setPreview("phone")}>iPhone表示</button>
+                <button type="button" aria-pressed={preview === "desktop"} onClick={() => setPreview("desktop")}>PC表示</button>
+              </div>
+              <div className={badgeStyles.preview}>
+                {settings.startScreen.badge.mode === "hidden"
+                  ? <p className="p-12 text-right">名札は表示されません</p>
+                  : <NavichanNameBadge badge={settings.startScreen.badge} preview={preview} />}
               </div>
             </fieldset>
             <div className={styles.actions}>

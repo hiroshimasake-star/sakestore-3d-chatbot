@@ -86,25 +86,6 @@
   font-weight: 700;
 }
 
-.badge {
-  position: fixed;
-  z-index: 25;
-  top: max(14px, env(safe-area-inset-top));
-  left: max(12px, env(safe-area-inset-left));
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 6px 12px;
-  border: 1px solid #f2bdca;
-  border-radius: 11px;
-  background: #fff;
-  box-shadow: 0 3px 12px #5c203a24;
-  color: #172442;
-  line-height: 1.22;
-}
-
-.badge strong, .badge small { display: block; }
-.badge small { color: #544e61; font-size: .75rem; }
 .beginnerMark {
   flex: 0 0 auto;
   width: 18px;

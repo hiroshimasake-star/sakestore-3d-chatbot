@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import { IconButton } from "./iconButton";
 
 type Props = {
+  aboveInput?: ReactNode;
   userMessage: string;
   isMicRecording: boolean;
   isChatProcessing: boolean;
@@ -12,6 +14,7 @@ type Props = {
   onClickMicButton: (event: React.MouseEvent<HTMLButtonElement>) => void;
 };
 export const MessageInput = ({
+  aboveInput,
   userMessage,
   isMicRecording,
   isChatProcessing,
@@ -22,6 +25,7 @@ export const MessageInput = ({
 }: Props) => {
   return (
     <div className="absolute bottom-0 z-20 w-screen">
+      {aboveInput}
       <div className="bg-base text-black">
         <div className="mx-auto max-w-4xl p-16">
           <div className="grid grid-flow-col gap-[8px] grid-cols-[min-content_1fr_min-content]">
