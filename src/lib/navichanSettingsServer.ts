@@ -1,3 +1,4 @@
+import { ConversationSettings, defaultConversationSettings, parseConversationSettings } from "./navichanConversationSettings";
 import { defaultSettings, NavichanSettings, parseSettings } from "./navichanSettings";
 
 import { defaultStartScreen, parseStartScreen, StartScreen } from "./navichanStartScreen";
@@ -22,37 +23,37 @@ export async function supabaseRequest(
   });
 }
 
-export async function readSettings(): Promise<NavichanSettings> {
+export async function readSettings() {
   const key = process.env.SUPABASE_SERVER_KEY;
   if (!key) throw new Error("Supabase server key is missing");
-  const response = await supabaseRequest(settingsPath + "&select=greeting,tone", key);
+  const response = await supabaseRequest(settingsPath + "&select=greeting,tone,conversation_settings", key);
   if (!response.ok) throw new Error("Unable to read navichan_settings");
   const [row] = await response.json();
   const settings = parseSettings(row);
   if (!settings) throw new Error("Invalid navichan_settings row");
-  return settings;
+  return { ...settings, conversation: parseConversationSettings(row.conversation_settings) ?? defaultConversationSettings };
 }
 
-export async function readPublicSettings(): Promise<NavichanSettings> {
-  if (!supabaseUrl() || !process.env.SUPABASE_SERVER_KEY) return defaultSettings;
+export async function readPublicSettings() {
+  if (!supabaseUrl() || !process.env.SUPABASE_SERVER_KEY) return { ...defaultSettings, conversation: defaultConversationSettings };
   try {
     return await readSettings();
   } catch {
     console.warn("Navichan settings unavailable. Using defaults.");
-    return defaultSettings;
+    return { ...defaultSettings, conversation: defaultConversationSettings };
   }
 }
 
 export async function readAdminSettings() {
   const key = process.env.SUPABASE_SERVER_KEY;
   if (!key) throw new Error("Supabase server key is missing");
-  const response = await supabaseRequest(settingsPath + "&select=greeting,tone,start_screen", key);
+  const response = await supabaseRequest(settingsPath + "&select=greeting,tone,start_screen,conversation_settings", key);
   if (!response.ok) throw new Error("Unable to read admin settings");
   const [row] = await response.json();
   const settings = parseSettings(row);
   const startScreen = parseStartScreen(row?.start_screen);
   if (!settings || !startScreen) throw new Error("Invalid admin settings");
-  return { ...settings, startScreen };
+  return { ...settings, startScreen, conversation: parseConversationSettings(row.conversation_settings) ?? defaultConversationSettings };
 }
 
 export async function readPublicStartScreen(): Promise<StartScreen> {
@@ -68,18 +69,30 @@ export async function readPublicStartScreen(): Promise<StartScreen> {
   }
 }
 
-export async function saveSettings(settings: NavichanSettings, startScreen: StartScreen) {
+export async function saveSettings(
+  settings: NavichanSettings,
+  startScreen: StartScreen,
+  conversation?: ConversationSettings
+) {
   const key = process.env.SUPABASE_SERVER_KEY;
   if (!key) throw new Error("Supabase server key is missing");
   const response = await supabaseRequest(settingsPath, key, {
     method: "PATCH",
     headers: { Prefer: "return=representation" },
-    body: JSON.stringify({ ...settings, start_screen: startScreen }),
+    body: JSON.stringify({
+      ...settings,
+      start_screen: startScreen,
+      conversation_settings: conversation,
+    }),
   });
   if (!response.ok) throw new Error("Unable to save navichan_settings");
   const [row] = await response.json();
   const saved = parseSettings(row);
   const savedStartScreen = parseStartScreen(row?.start_screen);
   if (!saved || !savedStartScreen) throw new Error("Missing navichan_settings row");
-  return { ...saved, startScreen: savedStartScreen };
+  return {
+    ...saved,
+    startScreen: savedStartScreen,
+    conversation: parseConversationSettings(row.conversation_settings) ?? defaultConversationSettings,
+  };
 }

@@ -117,3 +117,18 @@
 }
 
 .avatarPreview canvas { display: block; }
+
+.chatTestResult {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #d7dfed;
+  border-radius: 8px;
+  background: #f3f5fa;
+  overflow-wrap: anywhere;
+}
+
+.chatTestResult h2, .chatTestResult h3 { font-weight: 700; }
+.chatTestResult p { white-space: pre-wrap; }
+.chatTestResult ol { list-style: decimal; padding-left: 1.5rem; }
+.chatTestResult li + li { margin-top: 10px; }

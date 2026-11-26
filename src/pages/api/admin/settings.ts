@@ -1,11 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { parseConversationSettings } from "@/lib/navichanConversationSettings";
 import { parseSettings } from "@/lib/navichanSettings";
 import { parseStartScreen } from "@/lib/navichanStartScreen";
 import { readAdminSettings, saveSettings, supabaseRequest } from "@/lib/navichanSettingsServer";
 
 import { adminAuthConfig, adminCookie, hasAdminSession, unauthorized } from "@/lib/navichanAdminAuth";
 
-export const config = { api: { bodyParser: { sizeLimit: "3200kb" } } };
+export const config = { api: { bodyParser: { sizeLimit: "4100kb" } } };
 
 function sessionCookie(token: string, maxAge: number): string {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
@@ -69,7 +70,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!settings || !startScreen) {
       return res.status(400).json({ error: "あいさつ・口調・開始画面の入力内容をご確認ください。" });
     }
-    return res.status(200).json(await saveSettings(settings, startScreen));
+    const rawConversation = req.body?.conversation;
+    const conversation = parseConversationSettings(rawConversation);
+    if (rawConversation !== undefined && !conversation) {
+      return res.status(400).json({ error: "性格・話し方と会話例Excelの入力内容をご確認ください。" });
+    }
+    return res.status(200).json(await saveSettings(settings, startScreen, conversation ?? undefined));
   } catch {
     return res.status(503).json({ error: "管理画面の接続に失敗しました。時間を置いて再試行してください。" });
   }

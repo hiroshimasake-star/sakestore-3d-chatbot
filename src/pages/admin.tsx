@@ -1,7 +1,9 @@
 import { NavichanAvatarAdmin } from "@/components/navichanAvatarAdmin";
+import { NavichanConversationAdmin } from "@/components/navichanConversationAdmin";
+import { ConversationSettings, parseConversationSettings } from "@/lib/navichanConversationSettings";
 import Head from "next/head";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { greetingLimit, NavichanSettings, parseSettings, Tone, toneLabels } from "@/lib/navichanSettings";
+import { greetingLimit, NavichanSettings, parseSettings } from "@/lib/navichanSettings";
 import { NavichanNameBadge } from "@/components/navichanNameBadge";
 import badgeStyles from "@/styles/navichanBadge.module.css";
 import { NavichanStartCard } from "@/components/navichanStartCard";
@@ -11,7 +13,7 @@ import {
 import { buildUrl } from "@/utils/buildUrl";
 import styles from "@/styles/navichanAdmin.module.css";
 
-type AdminSettings = NavichanSettings & { startScreen: StartScreen };
+type AdminSettings = NavichanSettings & { startScreen: StartScreen; conversation: ConversationSettings };
 type ImageField = "image" | "desktopImage";
 
 const imageFields = {
@@ -25,6 +27,7 @@ export default function Admin() {
   const [preview, setPreview] = useState<"phone" | "desktop">("phone");
   const [readingImage, setReadingImage] = useState(false);
   const [notice, setNotice] = useState("");
+  const [readingExcel, setReadingExcel] = useState(false);
 
   async function request(method: string, body?: object) {
     setLoading(true);
@@ -46,11 +49,12 @@ export default function Admin() {
       }
       const saved = response.ok ? parseSettings(data) : null;
       const startScreen = parseStartScreen(data.startScreen);
-      if (!saved || !startScreen) {
+      const conversation = parseConversationSettings(data.conversation);
+      if (!saved || !startScreen || !conversation) {
         setNotice(data.error ?? "操作に失敗しました。");
         return;
       }
-      setSettings({ ...saved, startScreen });
+      setSettings({ ...saved, startScreen, conversation });
       if (method === "PUT") setNotice("保存しました。接客画面を開き直すと反映されます。");
     } catch {
       setNotice("接続できませんでした。通信環境を確認して再試行してください。");
@@ -116,7 +120,7 @@ export default function Admin() {
 
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (settings && !loading && !readingImage) void request("PUT", settings);
+    if (settings && !loading && !readingImage && !readingExcel) void request("PUT", settings);
   }
 
   return (
@@ -131,7 +135,7 @@ export default function Admin() {
             <p className={styles.eyebrow}>サケストア</p>
             <h1 id="admin-title">ナビちゃん 接客管理</h1>
           </div>
-          {settings && <button type="button" disabled={loading || readingImage} onClick={() => void request("DELETE")}>ログアウト</button>}
+          {settings && <button type="button" disabled={loading || readingImage || readingExcel} onClick={() => void request("DELETE")}>ログアウト</button>}
         </header>
         {settings ? (
           <>
@@ -143,14 +147,14 @@ export default function Admin() {
                 onChange={(event) => setSettings({ ...settings, greeting: event.target.value })} />
               <small>接客画面で最初の返信の先頭に表示します。空欄で非表示になります。</small>
             </label>
-            <label>
-              返答の口調
-              <select value={settings.tone} onChange={(event) => setSettings({ ...settings, tone: event.target.value as Tone })}>
-                {(Object.keys(toneLabels) as Tone[]).map((tone) => (
-                  <option key={tone} value={tone}>{toneLabels[tone]}</option>
-                ))}
-              </select>
-            </label>
+            <NavichanConversationAdmin
+              settings={settings.conversation}
+              tone={settings.tone}
+              onChange={(conversation) => setSettings((current) => current && { ...current, conversation })}
+              onToneChange={(tone) => setSettings((current) => current && { ...current, tone })}
+              disabled={loading || readingImage}
+              onReadingExcel={setReadingExcel}
+            />
             <fieldset className={styles.startSettings} disabled={loading || readingImage}>
               <legend>接客開始画面</legend>
               <small>共通画像は正方形に近い比率が目安です。WebP・PNG・JPEG、1枚750 KiBまで。</small>
@@ -216,7 +220,7 @@ export default function Admin() {
               </div>
             </fieldset>
             <div className={styles.actions}>
-              <button type="submit" disabled={loading || readingImage}>接客設定を保存</button>
+              <button type="submit" disabled={loading || readingImage || readingExcel}>接客設定を保存</button>
               <a href={buildUrl("/")} target="_blank" rel="noopener noreferrer">接客画面を開く ↗</a>
             </div>
           </form>
