@@ -1,16 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { parseSettings } from "@/lib/navichanSettings";
 import { parseStartScreen } from "@/lib/navichanStartScreen";
-import { readAdminSettings, saveSettings, supabaseRequest, supabaseUrl } from "@/lib/navichanSettingsServer";
+import { readAdminSettings, saveSettings, supabaseRequest } from "@/lib/navichanSettingsServer";
+
+import { adminAuthConfig, adminCookie, hasAdminSession, unauthorized } from "@/lib/navichanAdminAuth";
 
 export const config = { api: { bodyParser: { sizeLimit: "3200kb" } } };
 
-const cookieName = "navichan_admin";
-const unauthorized = "管理者アカウントでログインしてください。";
-
 function sessionCookie(token: string, maxAge: number): string {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  return `${cookieName}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${secure}`;
+  return `${adminCookie}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${secure}`;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -28,12 +27,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(204).end();
   }
 
-  const key = process.env.SUPABASE_AUTH_KEY;
-  const adminIds = (process.env.NAVICHAN_ADMIN_IDS ?? "").split(",").map((id) => id.trim()).filter(Boolean);
-  if (!key || !supabaseUrl() || !process.env.SUPABASE_SERVER_KEY || !adminIds.length) {
+  const authConfig = adminAuthConfig();
+  if (!authConfig) {
     return res.status(503).json({ error: "管理画面の接続設定が未完了です。" });
   }
 
+  const { key, adminIds } = authConfig;
   try {
     if (req.method === "POST") {
       const { email, password } = req.body ?? {};
@@ -59,13 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json(settings);
     }
 
-    const token = req.cookies[cookieName];
-    if (!token) return res.status(401).json({ error: unauthorized });
-    const auth = await supabaseRequest("/auth/v1/user", key, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (auth.status >= 500) throw new Error("Auth unavailable");
-    if (!auth.ok || !adminIds.includes((await auth.json()).id)) {
+    if (!await hasAdminSession(req, authConfig)) {
       return res.status(401).json({ error: unauthorized });
     }
 

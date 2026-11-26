@@ -11,7 +11,7 @@ type Props = {
   ) => void;
   onKeyDownUserMessage: (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onClickSendButton: (event: React.MouseEvent<HTMLButtonElement>) => void;
-  onClickMicButton: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onClickMicButton?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 };
 export const MessageInput = ({
   aboveInput,
@@ -28,14 +28,15 @@ export const MessageInput = ({
       {aboveInput}
       <div className="bg-base text-black">
         <div className="mx-auto max-w-4xl p-16">
-          <div className="grid grid-flow-col gap-[8px] grid-cols-[min-content_1fr_min-content]">
-            <IconButton
+          <div className={`grid grid-flow-col gap-[8px] ${onClickMicButton
+            ? "grid-cols-[min-content_1fr_min-content]" : "grid-cols-[1fr_min-content]"}`}>
+            {onClickMicButton && <IconButton
               iconName="24/Microphone"
               className="bg-secondary hover:bg-secondary-hover active:bg-secondary-press disabled:bg-secondary-disabled"
               isProcessing={isMicRecording}
               disabled={isChatProcessing}
               onClick={onClickMicButton}
-            />
+            />}
             <input
               type="text"
               placeholder="Message"

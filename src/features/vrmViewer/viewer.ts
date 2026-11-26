@@ -18,6 +18,8 @@ export class Viewer {
   private _scene: THREE.Scene;
   private _camera?: THREE.PerspectiveCamera;
   private _cameraControls?: OrbitControls;
+  private _frame?: number;
+  private readonly _onResize = () => this.resize();
 　private _muted = true;
   constructor() {
     this.isReady = false;
@@ -52,14 +54,14 @@ export class Viewer {
   public getMuted() {
     return this._muted;
   }
-  public async loadVrm() {
+  public async loadVrm(url: string, withAudio = true) {
     this.unloadVRM();
 
-    const model = new Model(this._camera || new THREE.Object3D());
+    const model = new Model(this._camera || new THREE.Object3D(), withAudio);
     this.model = model;
     model.setMuted(this._muted);
     try {
-      await model.loadVRM(buildUrl("/models/navichan.vrm"));
+      await model.loadVRM(url);
       if (this.model !== model) {
         model.unLoadVrm();
         return;
@@ -88,10 +90,19 @@ export class Viewer {
   }
 
   public unloadVRM(): void {
-    if (this.model?.vrm) {
-      this._scene.remove(this.model.vrm.scene);
-      this.model?.unLoadVrm();
-    }
+    const model = this.model;
+    this.model = undefined;
+    if (model?.vrm) this._scene.remove(model.vrm.scene);
+    model?.unLoadVrm();
+  }
+
+  public dispose() {
+    if (this._frame !== undefined) cancelAnimationFrame(this._frame);
+    window.removeEventListener("resize", this._onResize);
+    this.unloadVRM();
+    this._cameraControls?.dispose();
+    this._renderer?.dispose();
+    this.isReady = false;
   }
 
   /**
@@ -124,9 +135,7 @@ export class Viewer {
     this._cameraControls.screenSpacePanning = true;
     this._cameraControls.update();
 
-    window.addEventListener("resize", () => {
-      this.resize();
-    });
+    window.addEventListener("resize", this._onResize);
     this.isReady = true;
     this.update();
   }
@@ -171,7 +180,7 @@ export class Viewer {
   }
 
   public update = () => {
-    requestAnimationFrame(this.update);
+    this._frame = requestAnimationFrame(this.update);
     const delta = this._clock.getDelta();
     // update vrm components
     if (this.model) {

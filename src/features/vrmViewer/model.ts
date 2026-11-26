@@ -20,9 +20,9 @@ export class Model {
 
   private prevPlayedEmotion: string | null = null;
 
-  constructor(lookAtTargetParent: THREE.Object3D) {
+  constructor(lookAtTargetParent: THREE.Object3D, withAudio: boolean) {
     this._lookAtTargetParent = lookAtTargetParent;
-    this._lipSync = new LipSync(new AudioContext());
+    if (withAudio) this._lipSync = new LipSync(new AudioContext());
   }
   /**
    * 音声のミュート状態を切り替える
@@ -39,7 +39,12 @@ export class Model {
   }
   
   public async loadVRM(url: string): Promise<void> {
-    const loader = new GLTFLoader();
+    const manager = new THREE.LoadingManager();
+    manager.setURLModifier((resource) => {
+      if (resource === url || /^(blob|data):/i.test(resource)) return resource;
+      throw new Error("VRM external resources are not supported");
+    });
+    const loader = new GLTFLoader(manager);
     loader.register(
       (parser) =>
         new VRMLoaderPlugin(parser, {
@@ -49,11 +54,13 @@ export class Model {
 
     const gltf = await loader.loadAsync(url);
 
-    const vrm = (this.vrm = gltf.userData.vrm);
+    const vrm: VRM | undefined = gltf.userData.vrm;
+    if (!vrm) {
+      VRMUtils.deepDispose(gltf.scene);
+      throw new Error("VRM data is missing");
+    }
+    this.vrm = vrm;
     vrm.scene.name = "VRMRoot";
-
-    // log all info about vrm, including blend shapes and expressions
-    console.log(vrm);
 
     VRMUtils.rotateVRM0(vrm);
     this.mixer = new THREE.AnimationMixer(vrm.scene);

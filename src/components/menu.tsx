@@ -5,7 +5,6 @@ import { KoeiroParam } from "@/features/constants/koeiroParam";
 import { ChatLog } from "./chatLog";
 import React, {
   useContext,
-  useRef,
   useState,
   useEffect,
   useCallback,
@@ -14,6 +13,7 @@ import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 
 type Props = {
   started: boolean;
+  hasAvatar: boolean;
   openAiKey: string;
   elevenLabsKey: string;
   systemPrompt: string;
@@ -42,6 +42,7 @@ type Props = {
 
 export const Menu = ({
   started,
+  hasAvatar,
   chatLog,
   showChatLog,
   onShowChatLogChange,
@@ -51,7 +52,6 @@ export const Menu = ({
   const [isMuted, setIsMuted] = useState(true);
 
   const { viewer } = useContext(ViewerContext);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const savedBackground =
@@ -69,35 +69,10 @@ export const Menu = ({
     setIsMuted(nextMuted);
   }, [isMuted, viewer]);
 
-  const handleChangeVrmFile = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const files = event.target.files;
-
-      if (!files) {
-        return;
-      }
-
-      const file = files[0];
-
-      if (!file) {
-        return;
-      }
-
-      const fileType = file.name.split(".").pop();
-
-      if (fileType === "vrm") {
-        void viewer.loadVrm().catch(console.error);
-      }
-
-      event.target.value = "";
-    },
-    [viewer]
-  );
-
   return (
     <>
       {/* 音声切り替えボタン */}
-      <button
+      {hasAvatar && <button
         type="button"
         onClick={handleToggleSound}
         aria-pressed={!isMuted}
@@ -143,7 +118,7 @@ export const Menu = ({
         <span>
           {isMuted ? "音声 OFF" : "音声 ON"}
         </span>
-      </button>
+      </button>}
 
       {started && (
         <>
@@ -173,13 +148,6 @@ export const Menu = ({
         </>
       )}
 
-      <input
-        type="file"
-        className="hidden"
-        accept=".vrm"
-        ref={fileInputRef}
-        onChange={handleChangeVrmFile}
-      />
     </>
   );
 };

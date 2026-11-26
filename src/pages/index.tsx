@@ -52,17 +52,26 @@ export default function Home() {
   const [startState, setStartState] = useState<"initial" | "loading" | "ready" | "error">("initial");
   const [startScreen, setStartScreen] = useState<typeof defaultStartScreen | null>(null);
 
+  const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(undefined);
+  const [textOnly, setTextOnly] = useState(false);
+
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
     const timeout = window.setTimeout(() => controller.abort(), 4000);
-    fetch(buildUrl("/api/start-screen/"), { signal: controller.signal })
+    const startScreenRequest = fetch(buildUrl("/api/start-screen/"), { signal: controller.signal })
       .then(async (response) => response.ok ? parseStartScreen(await response.json()) : null)
       .catch(() => null)
       .then((settings) => {
         if (active) setStartScreen(settings ?? defaultStartScreen);
-      })
-      .finally(() => window.clearTimeout(timeout));
+      });
+    const avatarRequest = fetch(buildUrl("/api/avatar/"), { signal: controller.signal })
+      .then(async (response) => response.ok ? (await response.json()).url : null)
+      .catch(() => null)
+      .then((url) => {
+        if (active) setAvatarUrl(typeof url === "string" ? url : null);
+      });
+    void Promise.all([startScreenRequest, avatarRequest]).finally(() => window.clearTimeout(timeout));
     return () => {
       active = false;
       window.clearTimeout(timeout);
@@ -77,10 +86,16 @@ export default function Home() {
   async function startReception() {
     const canvas = canvasRef.current;
     if (!canvas || startState === "loading" || startState === "ready") return;
+    if (!avatarUrl) {
+      setTextOnly(true);
+      setStartState("ready");
+      return;
+    }
     setStartState("loading");
     try {
       if (!viewer.isReady) viewer.setup(canvas);
-      await viewer.loadVrm();
+      const url = avatarUrl.startsWith("/") ? buildUrl(avatarUrl) : avatarUrl;
+      await viewer.loadVrm(url);
       setStartState("ready");
     } catch (error) {
       console.error("Unable to start Navichan", error);
@@ -180,6 +195,7 @@ export default function Home() {
       onStart?: () => void,
       onEnd?: () => void
     ) => {
+      if (!viewer.model?.vrm) return;
       setIsAISpeaking(true);  // Set speaking state before starting
       try {
         await speakCharacter(
@@ -393,23 +409,28 @@ export default function Home() {
         <section className={startStyles.start} aria-label="接客開始">
           {startState === "error" ? (
             <div className={startStyles.status}>
-              <p role="alert">ナビちゃんを表示できませんでした。</p>
+              <p role="alert">3Dキャラクターを表示できませんでした。</p>
               <button type="button" onClick={() => void startReception()}>もう一度試す</button>
+              <button type="button" onClick={() => {
+                setTextOnly(true);
+                setStartState("ready");
+              }}>文字で接客をはじめる</button>
             </div>
-          ) : startState === "loading" || !startScreen ? (
+          ) : startState === "loading" || !startScreen || avatarUrl === undefined ? (
             <p role="status" className={startStyles.status}>
-              {startScreen ? "ナビちゃんを読み込み中…" : "接客画面を読み込み中…"}
+              {startState === "loading" ? "3Dキャラクターを読み込み中…" : "接客画面を読み込み中…"}
             </p>
           ) : (
             <button type="button" className={startStyles.startButton}
               aria-label={startScreen.label} onClick={() => void startReception()}>
-              <NavichanStartCard settings={startScreen} />
+              <NavichanStartCard settings={startScreen} allowVoice={Boolean(avatarUrl)} />
             </button>
           )}
         </section>
       ) : (
         <div ref={chatRef} tabIndex={-1} role="region" aria-label="ナビちゃんとの会話">
           <MessageInputContainer
+            allowVoice={!textOnly}
             isChatProcessing={chatProcessing}
             onChatProcessStart={handleSendChat}
             aboveInput={!showChatLog && (
@@ -425,6 +446,7 @@ export default function Home() {
       )}
       <Menu
         started={startState === "ready"}
+        hasAvatar={Boolean(avatarUrl) && !textOnly}
         openAiKey={openAiKey}
         elevenLabsKey={elevenLabsKey}
         openRouterKey={openRouterKey}

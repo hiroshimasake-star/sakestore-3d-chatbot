@@ -3,6 +3,7 @@ import { ReactNode, useState, useEffect, useCallback } from "react";
 
 type Props = {
   aboveInput?: ReactNode;
+  allowVoice: boolean;
   isChatProcessing: boolean;
   onChatProcessStart: (text: string) => void;
 };
@@ -15,6 +16,7 @@ type Props = {
  */
 export const MessageInputContainer = ({
   aboveInput,
+  allowVoice,
   isChatProcessing,
   onChatProcessStart,
 }: Props) => {
@@ -61,6 +63,7 @@ export const MessageInputContainer = ({
   }, [onChatProcessStart, userMessage]);
 
   useEffect(() => {
+    if (!allowVoice) return;
     const SpeechRecognition =
       window.webkitSpeechRecognition || window.SpeechRecognition;
 
@@ -77,7 +80,12 @@ export const MessageInputContainer = ({
     recognition.addEventListener("end", handleRecognitionEnd);
 
     setSpeechRecognition(recognition);
-  }, [handleRecognitionResult, handleRecognitionEnd]);
+    return () => {
+      recognition.removeEventListener("result", handleRecognitionResult);
+      recognition.removeEventListener("end", handleRecognitionEnd);
+      recognition.abort();
+    };
+  }, [allowVoice, handleRecognitionResult, handleRecognitionEnd]);
 
   useEffect(() => {
     if (!isChatProcessing) {
@@ -97,7 +105,7 @@ export const MessageInputContainer = ({
         }
       }}
       onChangeUserMessage={(e) => setUserMessage(e.target.value)}
-      onClickMicButton={handleClickMicButton}
+      onClickMicButton={allowVoice ? handleClickMicButton : undefined}
       onClickSendButton={handleClickSendButton}
     />
   );

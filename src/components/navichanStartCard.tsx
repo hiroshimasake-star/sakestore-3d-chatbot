@@ -4,6 +4,7 @@ import styles from "@/styles/navichanStart.module.css";
 
 type Props = {
   settings: StartScreen;
+  allowVoice?: boolean;
   preview?: "phone" | "desktop";
 };
 
@@ -11,7 +12,7 @@ export function BeginnerMark() {
   return <span className={styles.beginnerMark} role="img" aria-label="初心者マーク" />;
 }
 
-export function NavichanStartCard({ settings, preview }: Props) {
+export function NavichanStartCard({ settings, allowVoice = true, preview }: Props) {
   const [failedImages, setFailedImages] = useState<string[]>([]);
   const desktopImage = settings.desktopImage && !failedImages.includes(settings.desktopImage)
     ? settings.desktopImage : "";
@@ -34,7 +35,7 @@ export function NavichanStartCard({ settings, preview }: Props) {
           <span className={styles.title}>お酒選びを<br className={styles.phoneBreak} />お手伝いします</span>
           <span className={styles.guide}><BeginnerMark />新人スタッフ ナビちゃんがご案内します</span>
           <span className={styles.cta}>{settings.label}<span aria-hidden="true">›</span></span>
-          <span className={styles.hint}>文字入力・音声どちらでも相談できます</span>
+          <span className={styles.hint}>{allowVoice ? "文字入力・音声どちらでも相談できます" : "文字で相談できます"}</span>
         </span>
       )}
       {responsiveDesktopImage && renderImage(responsiveDesktopImage, styles.desktopArtwork)}

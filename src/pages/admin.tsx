@@ -1,3 +1,4 @@
+import { NavichanAvatarAdmin } from "@/components/navichanAvatarAdmin";
 import Head from "next/head";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { greetingLimit, NavichanSettings, parseSettings, Tone, toneLabels } from "@/lib/navichanSettings";
@@ -133,6 +134,7 @@ export default function Admin() {
           {settings && <button type="button" disabled={loading || readingImage} onClick={() => void request("DELETE")}>ログアウト</button>}
         </header>
         {settings ? (
+          <>
           <form onSubmit={save} className={styles.form}>
             <label>
               あいさつ
@@ -217,6 +219,8 @@ export default function Admin() {
               <a href={buildUrl("/")} target="_blank" rel="noopener noreferrer">接客画面を開く ↗</a>
             </div>
           </form>
+          <NavichanAvatarAdmin />
+          </>
         ) : (
           <form onSubmit={login} className={styles.form}>
             <label>メールアドレス<input type="email" name="email" autoComplete="username" required /></label>

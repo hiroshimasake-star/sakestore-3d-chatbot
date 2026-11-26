@@ -105,3 +105,15 @@
 }
 
 .phonePreview { max-width: 390px; }
+
+.avatarForm { margin-top: 24px; }
+
+.avatarPreview {
+  width: 100%;
+  height: clamp(240px, 52vw, 360px);
+  overflow: hidden;
+  border-radius: 14px;
+  background: #ffb9bf;
+}
+
+.avatarPreview canvas { display: block; }
